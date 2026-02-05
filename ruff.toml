@@ -1,0 +1,116 @@
+target-version = "py313"
+line-length = 88
+indent-width = 4
+
+[format]
+docstring-code-line-length = 72
+indent-style = "space"
+line-ending = "lf"
+quote-style = "single"
+
+[lint]
+extend-select = [
+    # ── Core style, correctness, and imports ──────────────────────────────
+    "A",        # flake8-builtins
+    "B",        # flake8-bugbear
+    "C4",       # flake8-comprehensions
+    "D",        # pydocstyle
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+
+    # ── Typing, annotations, and API design ───────────────────────────────
+    "ANN",      # flake8-annotations
+    "ARG",      # flake8-unused-arguments
+    "FBT",      # flake8-boolean-trap
+    "RET",      # flake8-return
+    "SIM",      # flake8-simplify
+    "YTT",      # flake8-2020
+
+    # ── Security & safety ─────────────────────────────────────────────────
+    "S",        # flake8-bandit
+    "BLE001",   # blind-except
+    "SLF001",   # private-member-access
+
+    # ── Error handling & control flow ─────────────────────────────────────
+    "RSE102",   # unnecessary-raise
+    "TRY",      # tryceratops
+
+    # ── Dates, time, logging, and side effects ────────────────────────────
+    "DTZ",      # flake8-datetimez
+    "LOG",      # flake8-logging
+    "TID",      # flake8-tidy-imports
+
+    # ── Imports & filesystem correctness ──────────────────────────────────
+    "INP001",   # implicit-namespace-package
+    "ISC",      # flake8-implicit-str-concat
+    "ICN",      # flake8-import-conventions
+    "PTH",      # flake8-use-pathlib
+
+    # ── Performance & complexity ──────────────────────────────────────────
+    "C901",     # mccabe complexity
+    "PERF",     # perflint
+    "PLC",      # pylint-convention
+    "PLE",      # pylint-error
+    "PLR",      # pylint-refactor
+    "PLW",      # pylint-warning
+
+    # ── Debugging, prints, and temporary code ──────────────────────────────
+    "T10",      # debugger
+    "T20",      # print
+    "FIX",      # flake8-fixme
+    "TD",       # flake8-todos
+
+    # ── FastAPI & framework-specific ──────────────────────────────────────
+    "FAST",     # FastAPI rules
+
+    # ── Miscellaneous quality rules ───────────────────────────────────────
+    "FA",       # flake8-future-annotations
+    "FLY002",   # static-join-to-fstring
+    "FURB",     # refurb
+    "PIE",      # flake8-pie
+    "SLOT",     # flake8-slots
+    "TC",       # flake8-type-checking
+]
+
+ignore = [
+    "ANN002",   # args
+    "ANN003",   # kwargs
+    "D100",
+    "D417",
+]
+
+[lint.extend-per-file-ignores]
+"**/api/**" = ["D103"]
+"**/services/**" = ["D103"]
+"__init__.py" = ["D104"]
+"**/configs/**" = ["D101"]
+"**/db/events.py" = [
+    "PLR0913",
+    "ANN401",
+    "FBT001",
+    "SLF001",
+]
+
+[lint.flake8-type-checking]
+exempt-modules = [
+    "typing",
+    "typing_extensions"
+]
+
+[lint.isort]
+split-on-trailing-comma = true
+combine-as-imports = true
+lines-after-imports = 2
+lines-between-types = 1
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
+known-first-party = ["app"]
+
+[lint.pydocstyle]
+convention = "google"
