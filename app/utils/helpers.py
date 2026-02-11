@@ -1,12 +1,21 @@
+import re
+import unicodedata
+
 from time import perf_counter_ns
+from typing import TYPE_CHECKING
 
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 from psutil import (
     cpu_percent,
     virtual_memory,
 )
 
 from app.schemas.core import SystemMetrics
+
+
+if TYPE_CHECKING:
+    from app.schemas.response import ResponseModel
 
 
 def get_api_uptime(request: Request) -> str:
@@ -56,3 +65,25 @@ def get_system_metrics() -> SystemMetrics:
         'cpu_usage': f'{cpu_percent()}%',
         'memory_usage': f'{virtual_memory().percent}%',
     }
+
+
+def clean_text(text: str) -> str:
+    return ' '.join(
+        unicodedata.normalize('NFKD', re.sub(r'[^a-zA-Z0-9\s-]', ' ', text))
+        .encode('ASCII', 'ignore')
+        .decode('ASCII')
+        .lower()
+        .strip()
+        .split()
+    )
+
+
+def json_encode_response_model(
+    response: 'ResponseModel | list | dict',
+    *,
+    exclude_none: bool = False,
+) -> dict:
+    if isinstance(response, (list, dict)):
+        return jsonable_encoder(obj=response, exclude_none=exclude_none)
+
+    return response.model_dump(mode='json', exclude_none=exclude_none)

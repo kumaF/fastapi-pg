@@ -11,3 +11,4 @@ class SystemMetrics(TypedDict):
 
     cpu_usage: str
     memory_usage: str
+    

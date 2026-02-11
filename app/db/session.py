@@ -2,7 +2,10 @@ import logging
 
 from collections.abc import AsyncGenerator
 
+from fastapi.exceptions import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio.session import AsyncSession
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.configs import core_configs
 from app.core.request import get_request_id
@@ -34,17 +37,14 @@ async def get_session() -> AsyncGenerator[AsyncSession]:
                 f'Initialized database session for request: {get_request_id()}.'
             )
             yield session
-    except Exception as e:
-        # logger.error(f'Database error: {e}')
-
-        # if isinstance(e, HTTPException):
-        #     raise HTTPException(
-        #         status_code=e.status_code,
-        #         detail=str(e)
-        #     )
-
-        # raise HTTPException(
-        #     status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-        #     detail=str(e)
-        # )
-        raise e
+    except SQLAlchemyError as e:
+        logger.exception(f'Database error: {e}')
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        ) from e
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail=str(e)
+        ) from e

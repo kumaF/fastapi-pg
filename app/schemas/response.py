@@ -1,7 +1,6 @@
-from datetime import (
-    UTC,
-    datetime,
-)
+import datetime as dt
+
+from datetime import datetime
 from typing import (
     # TYPE_CHECKING,
     Self,
@@ -15,6 +14,8 @@ from starlette.status import (
     HTTP_200_OK,
     HTTP_400_BAD_REQUEST,
 )
+
+from app.core.request import get_request_id
 
 
 # if TYPE_CHECKING:
@@ -45,8 +46,8 @@ class ResponseModel(BaseModel):
     # pagination: ResponsePaginationModel | dict | None = Field(default=None)
     # links: ResponseLinkModel | dict | None = Field(default=None)
     # meta: ResponseMetaModel | dict | None = Field(default=None)
-    # request_id: str = Field(default_factory=get_request_id)
-    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    request_id: str = Field(default_factory=get_request_id)
+    timestamp: str = Field(default_factory=lambda: datetime.now(dt.UTC).isoformat())
 
     @classmethod
     def create_model(

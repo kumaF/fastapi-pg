@@ -5,10 +5,23 @@ from fastapi import (
     Request,
 )
 from sqlalchemy import text
+from sqlalchemy.exc import (
+    DataError,
+    IntegrityError,
+    OperationalError,
+    SQLAlchemyError,
+)
 from sqlalchemy.ext.asyncio.session import AsyncSession
+from starlette.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_409_CONFLICT,
+    HTTP_422_UNPROCESSABLE_CONTENT,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
 
 from app.core.cache import read_cache
 from app.db.session import get_session
+from app.schemas.error import DetailedError
 
 
 async def get_db_response_time_ms(
@@ -40,3 +53,30 @@ async def get_db_response_time_ms(
         return f'{duration_ms:.2} ms'
 
     return duration_ns
+
+
+async def handle_db_errors(e: SQLAlchemyError) -> DetailedError:
+    if isinstance(e, DataError):
+        return DetailedError(
+            status_code=HTTP_422_UNPROCESSABLE_CONTENT,
+            message='Incorrect data.',
+            errors=[{'code': e.code, 'details': e._message()}]
+        )
+    elif isinstance(e, IntegrityError):
+        return DetailedError(
+            status_code=HTTP_409_CONFLICT,
+            message='Duplicate entry',
+            errors=[{'code': e.code, 'details': e._message()}]
+        )
+    elif isinstance(e, OperationalError):
+        return DetailedError(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            message='Query failed due to lock/dead lock issues.',
+            errors=[{'code': e.code, 'details': e._message()}]
+        )
+    else:
+        return DetailedError(
+            status_code=HTTP_400_BAD_REQUEST,
+            message='Unexpected SQLAlchemy error.',
+            errors=[{'code': e.code, 'details': e._message()}]
+        )
