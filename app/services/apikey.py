@@ -39,25 +39,26 @@ async def create_api_key(
     )
 
     try:
-        db_data: ServiceApiKeyModel = await repo.create({
-            'service_name': request_data.service_name,
-            'key_hash': hash_key(request_data.api_key)
-        })
+        async with session.begin():
+            db_data: ServiceApiKeyModel = await repo.create({
+                'service_name': request_data.service_name,
+                'key_hash': hash_key(request_data.api_key)
+            })
 
-        return ResponseModel.create_model(
-            status=HTTP_200_OK,
-            payload=ResponseApiKeySchema(**{
-                'api_key': request_data.api_key,
-                **db_data.to_dict(),
-            }).model_dump(
-                mode='json',
-                include=[
-                    'service_name',
-                    'api_key',
-                    'created_at',
-                ]
-            ),
-        )
+            return ResponseModel.create_model(
+                status=HTTP_200_OK,
+                payload=ResponseApiKeySchema(**{
+                    'api_key': request_data.api_key,
+                    **db_data.to_dict(),
+                }).model_dump(
+                    mode='json',
+                    include=[
+                        'service_name',
+                        'api_key',
+                        'created_at',
+                    ]
+                ),
+            )
     except SQLAlchemyError as e:
         err = await handle_db_errors(e)
         return ResponseModel(

@@ -19,7 +19,7 @@ from jwt.exceptions import (
 from passlib.context import CryptContext
 
 from app.configs.core import settings
-from app.core.exceptions.domain import TokenError
+from app.errors.domain import TokenError
 from app.schemas.enums import TokenType
 
 

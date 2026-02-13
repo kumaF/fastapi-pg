@@ -6,13 +6,13 @@ from fastapi.exceptions import (
 from pydantic import ValidationError
 
 from app.api import v1_router
-from app.core.exceptions.handlers import (
+from app.core.lifespan import lifespan
+from app.core.middlewares import AddRequestIdMiddleware
+from app.errors.handlers import (
     http_exception_handler,
     request_validation_error_handler,
     schema_validation_error_handler,
 )
-from app.core.lifespan import lifespan
-from app.core.middlewares import AddRequestIdMiddleware
 
 
 api_prefix: str = '/api'

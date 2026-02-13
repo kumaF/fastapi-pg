@@ -95,7 +95,6 @@ class UserRepository:
             for field, value in updated_data.items():
                 setattr(db_user, field, value)
 
-            await self.session.commit()
             await self.session.refresh(db_user)
 
         return db_user

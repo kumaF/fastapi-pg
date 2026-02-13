@@ -13,7 +13,6 @@ from starlette.status import (
 )
 
 from app.configs.core import settings
-from app.core.exceptions.domain import TokenError
 from app.core.security import (
     decode_jwt_header,
     decode_token,
@@ -22,6 +21,7 @@ from app.core.security import (
 )
 from app.db.session import get_session
 from app.db.utils import handle_db_errors
+from app.errors.domain import TokenError
 from app.repositories.user import UserRepository
 from app.schemas.auth import LoginRequestSchema
 from app.schemas.enums import (
@@ -83,7 +83,8 @@ async def validate_access_token(
     repo = UserRepository(session)
 
     try:
-        db_user = await repo.find_by_id(payload['id'])
+        async with session.begin(): 
+            db_user = await repo.find_by_id(payload['id'])
     except SQLAlchemyError as e:
         err = await handle_db_errors(e)
         return ResponseModel.create_model(
@@ -190,6 +191,9 @@ async def _password_login(
             headers={'WWW-Authenticate': 'Bearer'}
         )
 
+    
+    updated_pwd = db_user.password_hash
+    
     if updated_pwd is not None:
         try:
             db_user = await repo.update(

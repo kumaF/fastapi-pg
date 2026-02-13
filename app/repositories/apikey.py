@@ -15,7 +15,7 @@ class ServiceApiKeyRepository:
 
         self.session.add(db_data)
 
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(db_data)
 
         return db_data
