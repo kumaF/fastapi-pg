@@ -96,7 +96,7 @@ async def validate_access_token(
     if db_user is None:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
-            detail='Invalid authentication identifier',
+            detail='The provided token is invalid or expired',
             headers={'WWW-Authenticate': 'Bearer'}
         )
     
@@ -146,62 +146,9 @@ async def _password_login(
 ) -> ResponseModel:
     repo = UserRepository(session)
 
-    try:
-        db_user = await repo.find_by_identifier(credentials.identifier)
-    except SQLAlchemyError as e:
-        err = await handle_db_errors(e)
-        return ResponseModel.create_model(
-            status=err.status_code,
-            message=err.message,
-            errors=err.errors
-        )
-
-    if db_user is None:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail='Invalid authentication identifier',
-            headers={'WWW-Authenticate': 'Bearer'}
-        )
-
-    verified, updated_pwd = verify_password(
-        password=credentials.password,
-        hashed_password=db_user.password_hash
-    )
-
-    if not verified:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail='Invalid authentication credentials',
-            headers={'WWW-Authenticate': 'Bearer'}
-        )
-
-    user_data = UserSchema.model_validate(db_user.to_dict())
-
-    if not user_data.is_verified:
-        raise HTTPException(
-            status_code=HTTP_403_FORBIDDEN,
-            detail='User account is not verified. Please verify your account to proceed.',
-            headers={'WWW-Authenticate': 'Bearer'}
-        )
-
-    if not user_data.is_active:
-        raise HTTPException(
-            status_code=HTTP_403_FORBIDDEN,
-            detail='User account is inactive. Please contact support.',
-            headers={'WWW-Authenticate': 'Bearer'}
-        )
-
-    
-    updated_pwd = db_user.password_hash
-    
-    if updated_pwd is not None:
+    async with session.begin():
         try:
-            db_user = await repo.update(
-                user_id=db_user.id,
-                updated_data={
-                    'password_hash': updated_pwd
-                }
-            )
+            db_user = await repo.find_by_identifier(credentials.identifier)
         except SQLAlchemyError as e:
             err = await handle_db_errors(e)
             return ResponseModel.create_model(
@@ -210,19 +157,73 @@ async def _password_login(
                 errors=err.errors
             )
 
-    to_encode: dict = {
-        'id': str(db_user.id),
-        'email': db_user.email,
-    }
+        if db_user is None:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail='Invalid authentication identifier',
+                headers={'WWW-Authenticate': 'Bearer'}
+            )
 
-    access_token, refresh_token = generate_tokens(data=to_encode)
+        verified, updated_pwd = verify_password(
+            password=credentials.password,
+            hashed_password=db_user.password_hash
+        )
 
-    return ResponseModel.create_model(
-        status=HTTP_200_OK,
-        payload={
-            'token_type': 'bearer',
-            'access_token': access_token,
-            'expires_in': settings.access_token_exp_delta,
-            'refresh_token': refresh_token
+        if not verified:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail='Invalid authentication credentials',
+                headers={'WWW-Authenticate': 'Bearer'}
+            )
+
+        user_data = UserSchema.model_validate(db_user.to_dict())
+
+        if not user_data.is_verified:
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN,
+                detail='User account is not verified. Please verify your account to proceed.',
+                headers={'WWW-Authenticate': 'Bearer'}
+            )
+
+        if not user_data.is_active:
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN,
+                detail='User account is inactive. Please contact support.',
+                headers={'WWW-Authenticate': 'Bearer'}
+            )
+
+        
+        updated_pwd = db_user.password_hash
+        
+        if updated_pwd is not None:
+            try:
+                db_user = await repo.update(
+                    user_id=db_user.id,
+                    updated_data={
+                        'password_hash': updated_pwd
+                    }
+                )
+            except SQLAlchemyError as e:
+                err = await handle_db_errors(e)
+                return ResponseModel.create_model(
+                    status=err.status_code,
+                    message=err.message,
+                    errors=err.errors
+                )
+
+        to_encode: dict = {
+            'id': str(db_user.id),
+            'email': db_user.email,
         }
-    )
+
+        access_token, refresh_token = generate_tokens(data=to_encode)
+
+        return ResponseModel.create_model(
+            status=HTTP_200_OK,
+            payload={
+                'token_type': 'bearer',
+                'access_token': access_token,
+                'expires_in': settings.access_token_exp_delta,
+                'refresh_token': refresh_token
+            }
+        )

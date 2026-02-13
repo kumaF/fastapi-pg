@@ -116,9 +116,3 @@ class UserProfileRepository:
         await self.session.refresh(db_data)
 
         return db_data
-
-    # def get_by_id(self, user_id: int):
-    #     return self.db.query(User).filter(User.id == user_id).first()
-
-    # def get_all(self):
-    #     return self.db.query(User).all()
