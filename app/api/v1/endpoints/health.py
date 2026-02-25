@@ -1,28 +1,24 @@
-from typing import (
-    TYPE_CHECKING,
-    Annotated,
-)
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
     Depends,
 )
-from fastapi.responses import JSONResponse
+from starlette.status import HTTP_200_OK
 
+from app.schemas.response import ResponseModel
 from app.services.health import health_check_v1
-
-
-if TYPE_CHECKING:
-    from app.schemas.response import ResponseModel
+    
 
 router = APIRouter(prefix='/health')
 
 
-@router.get('')
+@router.get(
+    '',
+    status_code=HTTP_200_OK,
+    response_model_exclude_none=True,
+)
 def check_health(
     result: Annotated['ResponseModel', Depends(health_check_v1)],
-) -> JSONResponse:
-    return JSONResponse(
-        status_code=result.status,
-        content=result.model_dump(exclude_none=True),
-    )
+) -> ResponseModel:
+    return result

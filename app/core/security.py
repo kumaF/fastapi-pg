@@ -1,12 +1,16 @@
 import base64
 import datetime as dt
 import hashlib
+import hmac
+import json
 import secrets
 
 from datetime import (
+    date,
     datetime,
     timedelta,
 )
+from time import time
 from uuid import uuid4
 
 import jwt
@@ -19,7 +23,10 @@ from jwt.exceptions import (
 from passlib.context import CryptContext
 
 from app.configs.core import settings
-from app.errors.domain import TokenError
+from app.errors.domain import (
+    CursorError,
+    TokenError,
+)
 from app.schemas.enums import TokenType
 
 
@@ -32,6 +39,68 @@ pwd_context = CryptContext(
     # or 'auto' mark all but first hasher in schemes list as deprecated
     deprecated='auto'
 )
+
+def _sign(data: bytes) -> str:
+    return hmac.new(
+        settings.secret_key.encode(),
+        data,
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def encode_cursor(
+    expires_in_seconds: int,
+    cursor_id: int | None = None,
+    cursor_date: date | None = None,
+) -> str:
+    payload = {
+        'exp': int(time()) + expires_in_seconds,
+    }
+
+    if cursor_id:
+        payload.update({
+            'id': cursor_id,
+        })
+
+    if cursor_date:
+        payload.update({
+            'cursor_date': cursor_date.isoformat(),
+        })
+
+    raw = json.dumps(payload, separators=(",", ":")).encode()
+    encoded = base64.urlsafe_b64encode(raw).decode()
+    signature = _sign(raw)
+
+    return f"{encoded}.{signature}"
+
+
+def decode_cursor(cursor: str) -> tuple[date | None, int | None]:
+    try:
+        encoded, signature = cursor.split('.')
+
+        raw = base64.urlsafe_b64decode(encoded.encode())
+
+        expected_sig = _sign(raw)
+        if not hmac.compare_digest(signature, expected_sig):
+            msg: str = 'Cursor signature invalid'
+            raise CursorError(msg)
+
+        payload: dict = json.loads(raw)
+
+        if 'exp' in payload and time() > payload['exp']:
+            msg: str = 'Cursor expired'
+            raise CursorError(msg)
+
+        cursor_id = payload.get('id')
+
+        if payload.get('cursor_date'):
+            cursor_date = datetime.fromisoformat(payload['cursor_date'])
+        else:
+            cursor_date = None
+
+        return ( cursor_date, cursor_id, )
+    except Exception as e:
+        raise CursorError('Invalid cursor') from e
 
 
 def generate_api_key() -> str:

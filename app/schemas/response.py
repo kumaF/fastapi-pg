@@ -43,6 +43,7 @@ class ResponseModel(BaseModel):
     payload: dict | list | None = Field(default=None)
     message: str | None = Field(default=None)
     errors: list | None = Field(default=None)
+    next_cursor: str | None = Field(default=None),
     # pagination: ResponsePaginationModel | dict | None = Field(default=None)
     # links: ResponseLinkModel | dict | None = Field(default=None)
     # meta: ResponseMetaModel | dict | None = Field(default=None)
@@ -59,6 +60,7 @@ class ResponseModel(BaseModel):
         payload: dict | list | None = None,
         message: str | None = None,
         errors: list | None = None,
+        next_cursor: str | None = None,
         # result_count: int = 0,
     ) -> Self:
         """Create a standardized response model instance.
@@ -109,6 +111,7 @@ class ResponseModel(BaseModel):
             payload=payload,
             message=message,
             errors=errors,
+            next_cursor=next_cursor,
             # pagination=pagination_model,
             # links=links_model,
             # meta=meta_model

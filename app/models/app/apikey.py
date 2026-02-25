@@ -23,7 +23,7 @@ from app.models.base import Base
 
 class ServiceApiKeyModel(Base):
     __tablename__ = 'service_api_keys'
-    __table_args__ = {'schema': None}
+    __table_args__ = {'schema': 'core'}
 
     id: Mapped[str] = mapped_column(
         type_=CHAR(26),

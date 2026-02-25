@@ -1,4 +1,5 @@
 import asyncio
+
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -6,13 +7,13 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from app.models.base import Base
-
-from app.models.apikey import ServiceApiKeyModel
-from app.models.user import (
+from app.models.app.apikey import ServiceApiKeyModel
+from app.models.app.user import (
     UserModel,
     UserProfileModel,
 )
+from app.models.base import Base
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -61,7 +62,7 @@ def run_migrations_offline() -> None:
 
 def include_name(name, type_, parent_names):
     if type_ == 'schema':
-        return name in [None, target_metadata.schema]
+        return name in ['public', target_metadata.schema]
     elif type_ == 'table':
         # use schema_qualified_table_name directly
         return parent_names['schema_qualified_table_name'] in target_metadata.tables

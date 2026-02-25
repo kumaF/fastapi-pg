@@ -15,7 +15,7 @@ from app.repositories.user import (
 
 
 if TYPE_CHECKING:
-    from app.models.user import UserModel
+    from app.models.app.user import UserModel
 
 
 logging.basicConfig(

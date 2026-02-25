@@ -10,10 +10,10 @@ from app.db.base import POSTGRES_INDEXES_NAMING_CONVENTION
 
 class Base(DeclarativeBase):
     metadata = MetaData(
-        naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION, schema=None
+        naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION, schema='public'
     )
 
-    __table_args__ = {'schema': None}
+    __table_args__ = {'schema': 'public'}
 
     def get_model_columns(self):
         return [column.key for column in column_inspect(self).mapper.column_attrs]

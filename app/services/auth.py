@@ -1,7 +1,11 @@
-from typing import Annotated
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+)
 
 from fastapi import Depends
 from fastapi.exceptions import HTTPException
+from fastapi.security.api_key import APIKeyHeader
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio.session import AsyncSession
@@ -17,11 +21,14 @@ from app.core.security import (
     decode_jwt_header,
     decode_token,
     generate_tokens,
+    hash_key,
     verify_password,
 )
 from app.db.session import get_session
 from app.db.utils import handle_db_errors
 from app.errors.domain import TokenError
+from app.errors.http import HttpDbException
+from app.repositories.apikey import ServiceApiKeyRepository
 from app.repositories.user import UserRepository
 from app.schemas.auth import LoginRequestSchema
 from app.schemas.enums import (
@@ -35,7 +42,12 @@ from app.schemas.user import (
 )
 
 
+if TYPE_CHECKING:
+    from app.models.app.apikey import ServiceApiKeyModel
+
+
 oauth2_schema = OAuth2PasswordBearer(tokenUrl='/oauth/token')
+apikey_schema = APIKeyHeader(name=settings.apikey_name)
 
 
 async def generate_access_token(
@@ -87,11 +99,11 @@ async def validate_access_token(
             db_user = await repo.find_by_id(payload['id'])
     except SQLAlchemyError as e:
         err = await handle_db_errors(e)
-        return ResponseModel.create_model(
-            status=err.status_code,
+        raise HttpDbException(
+            status_code=err.status_code,
             message=err.message,
             errors=err.errors
-        )
+        ) from e
 
     if db_user is None:
         raise HTTPException(
@@ -102,6 +114,33 @@ async def validate_access_token(
     
     return payload, header
 
+async def validate_apikey(
+    apikey: Annotated[str, Depends(apikey_schema)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> str:
+    repo = ServiceApiKeyRepository(session)
+
+    async with session.begin():
+        db_apikey: ServiceApiKeyModel | None = await repo.find_by_key_hash(key_hash=hash_key(apikey))
+
+        if db_apikey is None:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail='Invalid api key',
+                headers={settings.apikey_name: 'apikey'}
+            )
+        
+        if not db_apikey.is_active:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail='Inactive api key',
+                headers={settings.apikey_name: 'apikey'}
+            )
+        
+        await repo.update_last_used_at(key_id=db_apikey.id)
+        
+    return apikey
+    
 
 def _refresh_token_login(token: str) -> ResponseModel:
     try:
@@ -151,11 +190,13 @@ async def _password_login(
             db_user = await repo.find_by_identifier(credentials.identifier)
         except SQLAlchemyError as e:
             err = await handle_db_errors(e)
-            return ResponseModel.create_model(
-                status=err.status_code,
+            raise HttpDbException(
+                status_code=err.status_code,
                 message=err.message,
                 errors=err.errors
-            )
+            ) from e
+        
+            
 
         if db_user is None:
             raise HTTPException(
@@ -205,11 +246,11 @@ async def _password_login(
                 )
             except SQLAlchemyError as e:
                 err = await handle_db_errors(e)
-                return ResponseModel.create_model(
-                    status=err.status_code,
+                raise HttpDbException(
+                    status_code=err.status_code,
                     message=err.message,
                     errors=err.errors
-                )
+                ) from e
 
         to_encode: dict = {
             'id': str(db_user.id),

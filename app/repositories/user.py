@@ -4,7 +4,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
-from app.models.user import (
+from app.models.app.user import (
     UserModel,
     UserProfileModel,
 )

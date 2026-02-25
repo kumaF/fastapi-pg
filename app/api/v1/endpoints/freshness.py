@@ -7,18 +7,18 @@ from fastapi import (
 from starlette.status import HTTP_200_OK
 
 from app.schemas.response import ResponseModel
-from app.services.auth import generate_access_token
+from app.services.manifest import fetch_data_freshness
     
 
-router = APIRouter(prefix='/oauth')
+router = APIRouter(prefix='/freshness')
 
 
-@router.post(
-    path='/token',
+@router.get(
+    '',
     status_code=HTTP_200_OK,
     response_model_exclude_none=True,
 )
-async def generate_tokens(
-    result: Annotated['ResponseModel', Depends(generate_access_token)],
+def data_freshness(
+    result: Annotated['ResponseModel', Depends(fetch_data_freshness)],
 ) -> ResponseModel:
     return result

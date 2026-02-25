@@ -24,7 +24,7 @@ from app.models.base import Base
 
 class UserModel(Base):
     __tablename__ = 'users'
-    __table_args__ = {'schema': None}
+    __table_args__ = {'schema': 'core'}
 
     id: Mapped[str] = mapped_column(
         type_=CHAR(26),
@@ -96,7 +96,7 @@ class UserModel(Base):
 
 class UserProfileModel(Base):
     __tablename__ = 'user_profiles'
-    __table_args__ = {'schema': None}
+    __table_args__ = {'schema': 'core'}
 
     id: Mapped[str] = mapped_column(
         type_=CHAR(26),
@@ -108,7 +108,7 @@ class UserProfileModel(Base):
     )
 
     user_id: Mapped[str] = mapped_column(
-        ForeignKey('users.id', ondelete='CASCADE'),
+        ForeignKey('core.users.id', ondelete='CASCADE'),
         unique=True,
     )
 

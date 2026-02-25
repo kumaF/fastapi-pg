@@ -34,6 +34,10 @@ class Settings(BaseSettings):
         validation_alias='REFRESH_TOKEN_EXP_DELTA',
         default=60 * 24 * 30,  # in minutes
     )
+    cursor_exp_delta: int = Field(
+        validation_alias='CURSOR_EXP_DELTA',
+        default=60 * 24,  # in minutes
+    )
     token_issuer: str = Field(
         validation_alias='TOKEN_ISSUER',
         default='auth:appname',
@@ -42,9 +46,14 @@ class Settings(BaseSettings):
         validation_alias='TOKEN_ISSUER',
         default='api:appname',
     )
+    apikey_name: str = Field(
+        validation_alias='API_KEY_NAME',
+        default='X-API-KEY'
+    )
 
     public_key: str = Field(validation_alias='PUBLIC_KEY')
     private_key: str = Field(validation_alias='PRIVATE_KEY')
+    secret_key: str = Field(validation_alias='SECRET_KEY')
 
 
 settings = Settings()  # type: ignore[missing-arguments]

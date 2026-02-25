@@ -11,6 +11,7 @@ from starlette.status import HTTP_200_OK
 from app.core.security import hash_key
 from app.db.session import get_session
 from app.db.utils import handle_db_errors
+from app.errors.http import HttpDbException
 from app.repositories.apikey import ServiceApiKeyRepository
 from app.schemas.apikey import (
     RequestApiKeySchema,
@@ -21,7 +22,7 @@ from app.services.auth import validate_access_token
 
 
 if TYPE_CHECKING:
-    from app.models.apikey import ServiceApiKeyModel
+    from app.models.app.apikey import ServiceApiKeyModel
 
 
 async def create_api_key(
@@ -61,9 +62,8 @@ async def create_api_key(
             )
     except SQLAlchemyError as e:
         err = await handle_db_errors(e)
-        return ResponseModel(
-            status=err.status_code,
-            success=False,
-            message=f'{err.message} - service_name: {request_data.service_name} already exists.',
+        raise HttpDbException(
+            status_code=err.status_code,
+            message=err.message,
             errors=err.errors
-        )
+        ) from e
